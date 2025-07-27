@@ -64,7 +64,7 @@ def get_game_phase(port, password):
     return None
 
 
-def accept_match(port, password):
+def accept_match(port, password, window_handle):
     url = f'https://127.0.0.1:{port}/lol-matchmaking/v1/ready-check/accept'
     auth = base64.b64encode(f'riot:{password}'.encode()).decode()
     headers = {
@@ -78,7 +78,7 @@ def accept_match(port, password):
         print('POST: /lol-matchmaking/v1/ready-check/accept')
         print(f'Status: {response.status_code}, Content: {response.text}')
         time.sleep(0.2)
-        minimize("League of Legends")
+        minimize(window_handle)
         if response.status_code == 204:
             # time.sleep(0.2)
             return True
@@ -117,7 +117,7 @@ def run():
 
         if phase == 'ReadyCheck':
             delay = 0.5
-            if accept_match(port, password):
+            if accept_match(port, password,client_window_handle):
                 time.sleep(5)
 
         else:
