@@ -1,2 +1,15 @@
-__pycache__/
+# PyInstaller
+/dist/
+/build/
+*.spec
+
+# Entorno virtual
 venv/
+.env/
+.venv/
+
+# Archivos temporales
+__pycache__/
+*.py[cod]
+*.pyo
+*.log
