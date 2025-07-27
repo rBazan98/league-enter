@@ -28,9 +28,9 @@ def handle_window(window_name="League of Legends"):
         return hwnd
     raise ValueError(f"{window_name} window not found.")
 
-def find_lockfile():
+def find_lockfile(process_name='LeagueClientUx.exe'):
     for proc in psutil.process_iter(['name', 'exe']):
-        if proc.info['name'] == 'LeagueClientUx.exe':
+        if proc.info['name'] == process_name:
             base_path = os.path.dirname(proc.info['exe'])
             lockfile_path = os.path.join(base_path, 'lockfile')
             if os.path.exists(lockfile_path):
@@ -89,6 +89,7 @@ def run():
 
     try:
         lockfile_path = find_lockfile()
+        client_window_handle = handle_window()
     except FileNotFoundError:
         return
 
@@ -110,9 +111,9 @@ def run():
         print('Current phase:', phase)
 
         if previous_phase == 'ReadyCheck' and phase == 'ChampSelect':
-            minimize("League of Legends")
+            minimize(client_window_handle)
             time.sleep(3)
-            minimize("League of Legends")
+            minimize(client_window_handle)
 
         if phase == 'ReadyCheck':
             delay = 0.5
@@ -133,16 +134,15 @@ if __name__ == '__main__':
         try:
             if not paused: run()
         except FileNotFoundError:
-            print("Esperando a que inicie el cliente de LoL...")
-            time.sleep(10)  # No frías la CPU como si fuera el servidor de Riot
-
+            print("Waiting for League Client...")
+            time.sleep(10)  
         except KeyboardInterrupt:
             print("\nBye!")
             time.sleep(3)
             break
         
         except Exception as e:
-            print(f"Error inesperado: {e}")
+            print(f"Unexpected Error: {e}")
             time.sleep(2)
 
 
