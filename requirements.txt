@@ -1,0 +1,6 @@
+keyboard==0.13.5
+psutil==7.0.0
+pygetwindow==0.0.9
+pywin32==310
+requests==2.32.4
+urllib3==2.5.0
