@@ -21,3 +21,14 @@ Automatically accepts League of Legends matches so you never miss a game because
 
 ```bash
 pip install -r requirements.txt
+```
+
+---
+<p align="center">
+  <sub>⚠️ <strong>Disclaimer</strong><br>
+  This project is intended for educational and demonstrative purposes only. It is not meant to be used to gain unfair advantages or interact with any official game clients in production environments.<br>
+  Use at your own risk. The author is not responsible for any consequences arising from misuse.<br>
+  League of Legends and its related trademarks are property of Riot Games, Inc.</sub>
+</p>
+
+---
