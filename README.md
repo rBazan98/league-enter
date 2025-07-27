@@ -33,9 +33,9 @@ If you want to create the standalone Windows executable of this app, follow thes
 
    ```bash
    python -m venv venv
-   source venv/Scripts/activate# for PowerShell
+   source venv/Scripts/activate #for PowerShell
    # Or
-   venv\Scripts\activate.bat# for CMD
+   venv\Scripts\activate.bat #for CMD
    ```
 2. **Install the dependencies:**
    ```bash
