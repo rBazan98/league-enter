@@ -12,6 +12,9 @@ Automatically accepts League of Legends matches so you never miss a game because
 - Adjusts check frequency based on game phase to save CPU. 🛠️💻
 - Pause and resume easily with the `P` key. ⏸️▶️
 
+###  Reminder ⚠️
+Please use this tool responsibly. Make sure to be ready to make your ban and manually pick your champion on time to avoid inconveniencing other players and to prevent inactivity penalties.
+
 ---
 
 ## Requirements 📋
@@ -22,6 +25,31 @@ Automatically accepts League of Legends matches so you never miss a game because
 ```bash
 pip install -r requirements.txt
 ```
+## How to Build the Executable (.exe)
+
+If you want to create the standalone Windows executable of this app, follow these steps like a pro:
+
+1. **Set up your environment (optional but recommended):**
+
+   ```bash
+   python -m venv venv
+   source venv/Scripts/activate# for PowerShell
+   # Or
+   venv\Scripts\activate.bat# for CMD
+   ```
+2. **Install the dependencies:**
+   ```bash
+    pip install -r requirements.txt
+    pip install pyinstaller
+    ```
+3. **Generate the executable:**
+   ```bash
+    pyinstaller --onefile --windowed main.py
+    ```
+4. **Find your executable in:**
+   ```bash
+    dist/main.exe
+    ```
 
 ---
 <p align="center">
