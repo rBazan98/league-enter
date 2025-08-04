@@ -82,7 +82,7 @@ def get_game_phase(port, password):
         log.warning(f"Request to get game phase failed: {e}")
     return None
 
-
+#Main feature: automatically accept match
 def accept_match(port, password, window_handle):
     url = f'https://127.0.0.1:{port}/lol-matchmaking/v1/ready-check/accept'
     auth = base64.b64encode(f'riot:{password}'.encode()).decode()
@@ -104,13 +104,27 @@ def accept_match(port, password, window_handle):
     except requests.RequestException as e:
         log.error(f'Error sending accept request: {e}')
 
-def run():
+#Future features:
+#Pick and ban desire champs.
+def pick_champ(champ):
+    pass
+def ban_champ(champ):
+    pass
 
-    try:
-        lockfile_path = find_lockfile()
-        client_window_handle = handle_window()
-    except FileNotFoundError:
-        raise FileNotFoundError
+#Save/load runes for each champ. 
+def save_runes(champ):
+    pass
+def load_runes(champ):
+    pass
+
+def run(init_delay=0):
+
+    time.sleep(init_delay)
+    lockfile_path = find_lockfile()
+    if not lockfile_path:
+        raise FileNotFoundError('Lockfile not found.')
+
+    client_window_handle = handle_window()
 
     port, password = read_lockfile(lockfile_path)
 
@@ -149,20 +163,24 @@ def run():
 
 
 if __name__ == '__main__':
+    custom_delay = 0
+    DEFAULT_DELAY = 0
     while True:
         try:
+            delay = custom_delay if custom_delay else DEFAULT_DELAY
+            custom_delay = 0
+
             if not paused:
-                run()
+                run(delay)
+
         except FileNotFoundError:
             log.info('Waiting for League Client...')
-            time.sleep(10)  
+            custom_delay = 10 # Sets a 10 seconds delay in the next run() excecutation
         except KeyboardInterrupt:
-            log.info('\nBye!')
-            time.sleep(1)
+            log.info('Bye!')
             break
         except Exception as e:
             log.error(f'Unexpected Error: {e}')
-            time.sleep(2)
-
+            break
 
 #Phases: Lobby > Matchmaking > ReadyCheck > ChampSelect > InProgress > PreEndOfGame
