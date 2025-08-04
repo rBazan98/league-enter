@@ -1,10 +1,11 @@
-__version__ = '1.1.0'
 import os
+import sys
 import time
 import base64
 
 import psutil
 import requests
+import subprocess
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -14,14 +15,45 @@ import win32gui
 import win32con
 import logging
 
+__version__ = "1.1.0"
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%H:%M:%S"
-)
+    datefmt="%H:%M:%S")
 log = logging.getLogger(__name__)
-logging.getLogger("urllib3").setLevel(logging.INFO)  
+logging.getLogger("urllib3").setLevel(logging.INFO)
+
+REPO = "rBazan98/league-enter"
+
+def check_for_new_version():
+    url = f"https://api.github.com/repos/{REPO}/releases/latest"
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            latest = response.json()["tag_name"]
+            return latest != f"v{__version__}"
+    except Exception:
+        pass
+    return False
+
+def offer_update(): 
+    choice = input("New version available. Update now? [y/N]: ").lower()
+    if choice != "y":
+        return
+    
+    if getattr(sys, 'frozen', False):
+        updater_path = os.path.join(sys._MEIPASS, "updater.py")
+    else:
+        updater_path = os.path.join(os.path.dirname(__file__), "updater.py")
+
+    subprocess.Popen([
+        sys.executable,
+        updater_path,
+        str(os.getpid()),
+        sys.executable
+    ])
+    sys.exit()
 
 
 paused = False
