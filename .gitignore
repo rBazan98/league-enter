@@ -3,13 +3,17 @@
 /build/
 *.spec
 
-# Entorno virtual
+# Virtual enviroment
 venv/
 .env/
 .venv/
 
-# Archivos temporales
+# Temporal files
 __pycache__/
 *.py[cod]
 *.pyo
 *.log
+
+#Binaries
+*.exe
+*.zip
