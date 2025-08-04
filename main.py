@@ -1,3 +1,4 @@
+__version__ = '1.1.0'
 import os
 import time
 import base64
@@ -15,12 +16,12 @@ import logging
 
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%H:%M:%S"
 )
 log = logging.getLogger(__name__)
-logging.getLogger("urllib3").setLevel(logging.WARNING)  
+logging.getLogger("urllib3").setLevel(logging.INFO)  
 
 
 paused = False
