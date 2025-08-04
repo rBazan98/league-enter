@@ -10,7 +10,7 @@ Automatically accepts League of Legends matches so you never miss a game because
 - Stop staring at the client waiting to accept. 👀
 - Minimizes the game window to keep your desktop clean. 🖥️
 - Adjusts check frequency based on game phase to save CPU. 🛠️💻
-- Pause and resume easily with the `P` key. ⏸️▶️
+- Pause and resume easily with  `CTRL + P` hot-key. ⏸️▶️
 
 ###  Reminder ⚠️
 Please use this tool responsibly. Make sure to be ready to make your ban and manually pick your champion on time to avoid inconveniencing other players and to prevent inactivity penalties.
