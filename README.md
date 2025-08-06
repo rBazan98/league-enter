@@ -1,4 +1,4 @@
-# League Auto-Accept Bot **v1.1.0**📎
+# League Auto-Accept Bot **v1.2.0**📎
 
 Automatically accepts League of Legends matches so you never miss a game because you were distracted. It also minimizes the game window so it doesn't get in your way. 🕹️✨
 
@@ -11,6 +11,7 @@ Automatically accepts League of Legends matches so you never miss a game because
 - Minimizes the game window to keep your desktop clean. 🖥️
 - Adjusts check frequency based on game phase to save CPU. 🛠️💻
 - Pause and resume easily with  `CTRL + P` hot-key. ⏸️▶️
+- Executable auto-updates itself to keep you always current. 🔄
 
 ###  Reminder ⚠️
 Please use this tool responsibly. Make sure to be ready to make your ban and manually pick your champion on time to avoid inconveniencing other players and to prevent inactivity penalties.
@@ -25,11 +26,17 @@ Please use this tool responsibly. Make sure to be ready to make your ban and man
 ```bash
 pip install -r requirements.txt
 ```
+- Run the main script:
+
+```bash
+python main.py
+```
+
 ## How to Build the Executable (.exe)
 
 If you want to create the standalone Windows executable of this app, follow these steps like a pro:
 
-1. **Set up your environment (optional but recommended):**
+1. **Set up your environment (optional but highly recommended):**
 
    ```bash
    python -m venv venv
@@ -42,14 +49,15 @@ If you want to create the standalone Windows executable of this app, follow thes
     pip install -r requirements.txt
     pip install pyinstaller
     ```
-3. **Generate the executable:**
+3. **Run the build script:**
    ```bash
-    pyinstaller --onefile --windowed main.py
+    build.ps1
     ```
-4. **Find your executable in:**
+4. **Find your executable at:**
    ```bash
-    dist/main.exe
+    ./league-enter.exe
     ```
+**Executable is capable of automatically update itself if it finds a newer release in this repository.**
 
 ---
 <p align="center">
