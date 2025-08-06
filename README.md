@@ -26,6 +26,12 @@ Please use this tool responsibly. Make sure to be ready to make your ban and man
 ```bash
 pip install -r requirements.txt
 ```
+- Run the main script:
+
+```bash
+python main.py
+```
+
 ## How to Build the Executable (.exe)
 
 If you want to create the standalone Windows executable of this app, follow these steps like a pro:
@@ -51,6 +57,7 @@ If you want to create the standalone Windows executable of this app, follow thes
    ```bash
     ./league-enter.exe
     ```
+**Executable is capable of automatically update itself if it finds a newer release in this repository.**
 
 ---
 <p align="center">
