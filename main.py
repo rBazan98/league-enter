@@ -1,27 +1,133 @@
-__version__ = '1.1.0'
 import os
+import sys
 import time
 import base64
-
-import psutil
-import requests
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-import keyboard
-import pygetwindow as gw
-import win32gui
-import win32con
+import subprocess
+import urllib.request
+import shutil
 import logging
 
+__version__ = "1.2.0"
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%H:%M:%S"
-)
+    datefmt="%H:%M:%S")
 log = logging.getLogger(__name__)
-logging.getLogger("urllib3").setLevel(logging.INFO)  
+logging.getLogger("urllib3").setLevel(logging.INFO)
+
+REPO = "rBazan98/league-enter"
+EXE_NAME = "league-enter.exe"
+__version__ = "1.1.0"  # Tu versión actual aquí
+
+def run_imports():
+    import psutil
+    import requests
+    import urllib3
+    import keyboard
+    import pygetwindow as gw
+    import win32gui
+    import win32con
+
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    return psutil, requests, keyboard, gw, win32gui, win32con, urllib3
+
+def check_for_new_version():
+    import requests  # Puedes empacar requests o cambiar esto por urllib (si quieres 100% stdlib)
+    url = f"https://api.github.com/repos/{REPO}/releases/latest"
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            latest = response.json()["tag_name"]
+            return latest != f"v{__version__}"
+    except Exception:
+        pass
+    return False
+
+def get_real_exe_path():
+    exe_path = sys.executable
+    if getattr(sys, 'frozen', False) and "_MEI" in exe_path:
+        real_path = os.path.abspath(os.path.join(os.path.dirname(exe_path), "..", EXE_NAME))
+        logging.warning(f"Posible ejecución desde el directorio temporal: {exe_path}")
+        return real_path
+    return exe_path
+
+def offer_update():
+    choice = input("New version available. Update now? [y/N]: ").lower()
+    if choice != "y":
+        return
+
+    exe_real_path = str(get_real_exe_path())
+    download_url = f"https://github.com/{REPO}/releases/latest/download/{EXE_NAME}"
+
+    # Copia temporal como updater
+    updater_path = os.path.join(os.path.dirname(exe_real_path), "league-updater.exe")
+    try:
+        shutil.copy2(exe_real_path, updater_path)
+    except Exception as e:
+        logging.error(f"Failed to copy updater exe: {e}")
+        return
+
+    # Lanza updater como proceso completamente separado
+    subprocess.Popen([
+        "cmd", "/c", "start", "", updater_path,
+        "--update",
+        str(os.getpid()),
+        exe_real_path,
+        download_url
+    ], shell=True)
+    
+    sys.exit()
+
+
+def run_updater(args):
+    log.info('Updating...')
+    if len(args) != 3:
+        print("Usage: --update <PID> <target_exe_path> <download_url>")
+        time.sleep(3)
+        return
+
+    target_pid = int(args[0])
+    target_exe = args[1]
+    download_url = args[2]
+
+    print("Waiting for main process to exit...")
+    while True:
+        try:
+            os.kill(target_pid, 0)
+            time.sleep(0.5)
+        except OSError:
+            break
+
+    tmp_path = target_exe + ".new"
+    try:
+        print(f"Downloading new version from {download_url}")
+        with urllib.request.urlopen(download_url) as response, open(tmp_path, "wb") as out_file:
+            shutil.copyfileobj(response, out_file)
+    except Exception as e:
+        print(f"Download failed: {e}")
+        time.sleep(3)
+        return
+
+    try:
+        os.remove(target_exe)
+        os.rename(tmp_path, target_exe)
+    except Exception as e:
+        print(f"Failed to replace executable: {e}")
+        time.sleep(3)
+        return
+
+    print("Launching updated exe...")
+    subprocess.Popen([target_exe])
+    time.sleep(1)
+
+    # Autodestruir updater
+    updater_exe = sys.executable
+    print("Cleaning up updater...")
+    subprocess.Popen(f'cmd /c ping 127.0.0.1 -n 2 > nul & del /f /q "{updater_exe}"', shell=True)
+    sys.exit()
+
 
 
 paused = False
@@ -29,7 +135,7 @@ def toggle_pause():
     global paused
     paused = not paused
     log.info(f'Paused:{paused}')
-keyboard.add_hotkey('ctrl+p',toggle_pause)
+
 
 def handle_window(window_name="League of Legends"):
     windows = gw.getWindowsWithTitle(window_name)
@@ -80,7 +186,7 @@ def get_game_phase(port, password):
             log.debug(f"Current phase: {phase}")
             return phase
     except requests.RequestException:
-        log.warning(f"Request to get game phase failed: {e}")
+        log.warning(f"Request to get game phase failed.")
     return None
 
 #Main feature: automatically accept match
@@ -164,6 +270,14 @@ def run(init_delay=0):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) >= 2 and sys.argv[1] == "--update":
+        run_updater(sys.argv[2:])
+    else:
+        if check_for_new_version(): offer_update()
+
+    psutil, requests, keyboard, gw, win32gui, win32con, urllib3 = run_imports()
+    keyboard.add_hotkey('ctrl+p',toggle_pause)
+
     custom_delay = 0
     DEFAULT_DELAY = 0
     while True:
