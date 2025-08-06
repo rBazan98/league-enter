@@ -143,7 +143,7 @@ def handle_window(window_name="League of Legends"):
         hwnd = windows[0]._hWnd
         return hwnd
     else:
-        log.error(f'{window_name} window not found.')
+        log.debug(f'{window_name} window not found.')
         return None    
 
 def find_lockfile(process_name='LeagueClientUx.exe'):
@@ -186,7 +186,8 @@ def get_game_phase(port, password):
             log.debug(f"Current phase: {phase}")
             return phase
     except requests.RequestException:
-        log.warning(f"Request to get game phase failed.")
+        log.debug(f"Request to get game phase failed.")
+        raise ConnectionError(f'Unable to connect to league client.')
     return None
 
 #Main feature: automatically accept match
@@ -270,6 +271,7 @@ def run(init_delay=0):
 
 
 if __name__ == '__main__':
+    log.info(f'Welcome to League Enter v{__version__}')
     if len(sys.argv) >= 2 and sys.argv[1] == "--update":
         run_updater(sys.argv[2:])
     else:
@@ -291,6 +293,9 @@ if __name__ == '__main__':
         except FileNotFoundError:
             log.info('Waiting for League Client...')
             custom_delay = 10 # Sets a 10 seconds delay in the next run() excecutation
+        except ConnectionError:
+            log.debug('League Client not responding...')
+            custom_delay = 1 # Sets a 10 seconds delay in the next run() excecutation
         except KeyboardInterrupt:
             log.info('Bye!')
             break
