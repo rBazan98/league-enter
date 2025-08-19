@@ -37,7 +37,6 @@ def get_latest_version():
     """
     Returns the latest version from the repository releases.
     """
-    import requests
     url = f'https://api.github.com/repos/{REPO}/releases/latest'
     try:
         response = requests.get(url, timeout=5)
@@ -46,9 +45,17 @@ def get_latest_version():
             # return latest != f'v{__version__}'
             log.debug(f'New version {latest} available.')
             return latest
-    except Exception:
-        pass
-    return False
+    except requests.exceptions.Timeout:
+        log.error('Request timed out. Check your internet connection.')
+        return None
+
+    except requests.exceptions.ConnectionError:
+        log.error('No internet connection or DNS failure.')
+        return None
+
+    except Exception as e:
+        log.error(f'Unexpected error: {e}')
+        return None
 
 def get_real_exe_path():
     """
@@ -172,12 +179,28 @@ def find_lockfile(process_name='LeagueClientUx.exe'):
     log.debug('Lockfile not found')
     return None
 
-def minimize(window_handle):
+def minimize(window_title):
+    try:
+        window = gw.getWindowsWithTitle(window_title)[0]
+        if not window.isMinimized:
+            window.minimize()
+            log.info('Minimize!')
+        else:
+            log.info('Window already minimized.')
+    except IndexError:
+        log.debug('No window found.')
+
+
+def old_minimize(window_handle):
     if window_handle:
-        while not win32gui.IsIconic(window_handle):  # si NO está minimizada
-            win32gui.ShowWindow(window_handle, win32con.SW_MINIMIZE)
+        while not win32gui.IsIconic(window_handle):
+            win32gui.ShowWindow(window_handle, win32con.SW_FORCEMINIMIZE)
+            log.info('Minimize!')
+            win32gui.PumpWaitingMessages()
+            log.info('PostPump!')
+
     else:
-        raise Exception('No window found.')
+        log.debug('No window found.')
 
 def read_lockfile(lockfile_path):
     with open(lockfile_path, 'r') as f:
@@ -213,15 +236,15 @@ def accept_match(port, password, window_handle):
         'Accept': 'application/json'
     }
     try:
-        log.info('Accepted!')
         response = requests.post(url, headers=headers, verify=False)
-        # response = requests.post(url, headers=headers, verify=True)
         log.debug('POST: /lol-matchmaking/v1/ready-check/accept')
         log.info(f'Status: {response.status_code}, Content: {response.text}')
+        log.info('Accepted!')
         time.sleep(0.2)
-        minimize(window_handle)
+        minimize('League of Legends')
+        # old_minimize(window_handle)
         if response.status_code == 204:
-            # time.sleep(0.2)
+            time.sleep(0.2)
             return True
     except requests.RequestException as e:
         log.error(f'Error sending accept request: {e}')
@@ -267,9 +290,11 @@ def run(init_delay=0):
         log.info(f'Current phase: {phase}')
 
         if previous_phase == 'ReadyCheck' and phase == 'ChampSelect':
-            minimize(client_window_handle)
+            minimize('League of Legends')
+            # minimize(client_window_handle)
             time.sleep(3)
-            minimize(client_window_handle)
+            minimize('League of Legends')
+            # minimize(client_window_handle)
 
         if phase == 'ReadyCheck':
             delay = 0.5
@@ -290,7 +315,6 @@ if __name__ == '__main__':
         log.info(f'Welcome to League Enter v{__version__}')
 
         on_python = get_real_exe_path().lower().endswith('python.exe')
-        on_python = False
         do_update = len(sys.argv) >= 2 and sys.argv[1] == '--update'
 
         if do_update and not on_python:
@@ -298,10 +322,13 @@ if __name__ == '__main__':
         else:
             Version, psutil, requests, keyboard, gw, win32gui, win32con, urllib3 = run_imports()
             latest_version = get_latest_version()
-            log.debug(f'Latest release: {latest_version}')
-            new_version = Version(latest_version.lstrip('v')) > Version(__version__)
-            if new_version and not on_python:
-                offer_update(latest_version)
+            if latest_version:
+                log.debug(f'Latest release: {latest_version}')
+                new_version = Version(latest_version.lstrip('v')) > Version(__version__)
+                if new_version and not on_python:
+                    offer_update(latest_version)
+            else:
+                log.info('Unable to get latest version')
 
         keyboard.add_hotkey('ctrl+p',toggle_pause)
 
