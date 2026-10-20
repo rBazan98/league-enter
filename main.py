@@ -61,12 +61,7 @@ def get_real_exe_path():
     """
     Returns the path from where the program is running.
     """
-    exe_path = sys.executable
-    if getattr(sys, 'frozen', False) and '_MEI' in exe_path:
-        real_path = os.path.abspath(os.path.join(os.path.dirname(exe_path), '..', EXE_NAME))
-        logging.warning(f'Probably running from a temporary directory: {exe_path}')
-        return real_path
-    return exe_path
+    return os.path.abspath(sys.executable)
 
 def offer_update(latest=None):
     """
@@ -88,13 +83,14 @@ def offer_update(latest=None):
         logging.error(f'Failed to copy updater exe: {e}')
         return
 
-    subprocess.Popen([
-        'cmd', '/c', 'start', '', updater_path,
-        '--update',
-        str(os.getpid()),
-        exe_real_path,
-        download_url
-    ], shell=True)
+    try:
+        subprocess.Popen([
+            updater_path, '--update', str(os.getpid()),
+            exe_real_path, download_url
+        ])
+    except OSError as exc:
+        log.error('Failed to launch updater: %s', exc)
+        return
 
     sys.exit()
 
@@ -106,50 +102,64 @@ def run_updater(args):
     launching the updated application, and finally cleaning up the updater executable before exiting.
     """
 
+    import psutil as updater_psutil
+
     log.info('Updating...')
     if len(args) != 3:
         print('Usage: --update <PID> <target_exe_path> <download_url>')
-        time.sleep(3)
-        return
+        return 1
 
-    target_pid = int(args[0])
+    try:
+        target_pid = int(args[0])
+        if target_pid <= 0:
+            raise ValueError('PID must be positive')
+    except ValueError:
+        log.error('Invalid process ID for update.')
+        return 1
     target_exe = args[1]
     download_url = args[2]
 
     print('Waiting for main process to exit...')
-    while True:
-        try:
-            os.kill(target_pid, 0)
-            time.sleep(0.5)
-        except OSError:
-            break
+    try:
+        updater_psutil.Process(target_pid).wait(timeout=30)
+    except updater_psutil.NoSuchProcess:
+        pass
+    except (updater_psutil.AccessDenied, updater_psutil.TimeoutExpired) as exc:
+        log.error('Unable to wait for main process: %s', exc)
+        return 1
 
     tmp_path = target_exe + '.new'
     try:
         print(f'Downloading new version from {download_url}')
-        with urllib.request.urlopen(download_url) as response, open(tmp_path, 'wb') as out_file:
+        with urllib.request.urlopen(download_url, timeout=30) as response, open(tmp_path, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
+        os.replace(tmp_path, target_exe)
     except Exception as e:
-        print(f'Download failed: {e}')
-        time.sleep(3)
-        return
-
-    try:
-        os.remove(target_exe)
-        os.rename(tmp_path, target_exe)
-    except Exception as e:
-        print(f'Failed to replace executable: {e}')
-        time.sleep(3)
-        return
+        log.error('Failed to download or replace executable: %s', e)
+        return 1
+    finally:
+        try:
+            os.remove(tmp_path)
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            log.warning('Unable to remove temporary download: %s', exc)
 
     print('Launching updated exe...')
-    subprocess.Popen([target_exe])
+    try:
+        subprocess.Popen([target_exe])
+    except OSError as exc:
+        log.error('Failed to launch updated executable: %s', exc)
+        return 1
     time.sleep(1)
 
     updater_exe = sys.executable
     print('Cleaning up updater...')
-    subprocess.Popen(f'cmd /c ping 127.0.0.1 -n 2 > nul & del /f /q "{updater_exe}"', shell=True)
-    sys.exit()
+    try:
+        subprocess.Popen(f'cmd /c ping 127.0.0.1 -n 2 > nul & del /f /q "{updater_exe}"', shell=True)
+    except OSError as exc:
+        log.warning('Unable to schedule updater cleanup: %s', exc)
+    return 0
 
 paused = False
 def toggle_pause():
@@ -350,35 +360,46 @@ def run_bot():
             break
 
 
-if __name__ == '__main__':
+def main(args=None):
+    global Version, psutil, requests, keyboard, gw, win32gui, win32con, urllib3
+
+    args = sys.argv[1:] if args is None else args
     try:
         log.info(f'Welcome to League Enter v{__version__}')
 
-        on_python = get_real_exe_path().lower().endswith('python.exe')
-        do_update = len(sys.argv) >= 2 and sys.argv[1] == '--update'
+        frozen = getattr(sys, 'frozen', False)
+        if args and args[0] == '--update':
+            if not frozen:
+                log.error('The updater must run from the packaged executable.')
+                return 1
+            return run_updater(args[1:])
 
-        if do_update and not on_python:
-            run_updater(sys.argv[2:])
+        Version, psutil, requests, keyboard, gw, win32gui, win32con, urllib3 = run_imports()
+        latest_version = get_latest_version()
+        if latest_version:
+            log.debug(f'Latest release: {latest_version}')
+            new_version = Version(latest_version.lstrip('v')) > Version(__version__)
+            if new_version and frozen:
+                offer_update(latest_version)
         else:
-            Version, psutil, requests, keyboard, gw, win32gui, win32con, urllib3 = run_imports()
-            latest_version = get_latest_version()
-            if latest_version:
-                log.debug(f'Latest release: {latest_version}')
-                new_version = Version(latest_version.lstrip('v')) > Version(__version__)
-                if new_version and not on_python:
-                    offer_update(latest_version)
-            else:
-                log.info('Unable to get latest version')
+            log.info('Unable to get latest version')
 
         keyboard.add_hotkey('ctrl+p',toggle_pause)
 
         run_bot()
+        return 0
 
     except KeyboardInterrupt:
         print()
         log.info('Bye!')
+        return 0
     except Exception as e:
         print()
         log.error(f'Unexpected Error: {e}')
+        return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())
 
 #Phases: None > Lobby > Matchmaking > ReadyCheck > ChampSelect > InProgress > PreEndOfGame
