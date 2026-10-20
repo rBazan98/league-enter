@@ -20,44 +20,52 @@ Please use this tool responsibly. Make sure to be ready to make your ban and man
 
 ## Requirements 📋
 
-- Python 3.x 🐍
-- Install dependencies with:
+- Windows and Python 3.9 or newer 🐍
+- Run these PowerShell commands from the repository directory. Dependencies stay inside `.venv`; activating it is optional.
 
-```bash
-pip install -r requirements.txt
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 - Run the main script:
 
-```bash
-python main.py
+```powershell
+.\.venv\Scripts\python.exe main.py
 ```
+
+To activate the environment in PowerShell, use `.\.venv\Scripts\Activate.ps1`.
+For Command Prompt (CMD), use `.venv\Scripts\activate.bat`.
+
+## Tests
+
+After installing the dependencies, run:
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m pip check
+```
+
+The tests simulate client responses, process waiting, downloads, hotkeys, and executable launches. They do not start the bot, connect to League of Legends, or perform an actual update. Updater file operations use temporary test files.
 
 ## How to Build the Executable (.exe)
 
-If you want to create the standalone Windows executable of this app, follow these steps like a pro:
+1. **Create `.venv` and install the dependencies** using the commands above.
 
-1. **Set up your environment (optional but highly recommended):**
+2. **Install PyInstaller inside the same environment:**
 
-   ```bash
-   python -m venv venv
-   source venv/Scripts/activate #for PowerShell
-   # Or
-   venv\Scripts\activate.bat #for CMD
+   ```powershell
+   .\.venv\Scripts\python.exe -m pip install pyinstaller
    ```
-2. **Install the dependencies:**
-   ```bash
-    pip install -r requirements.txt
-    pip install pyinstaller
-    ```
-3. **Run the build script:**
-   ```bash
-    build.ps1
-    ```
-4. **Find your executable at:**
-   ```bash
-    ./league-enter.exe
-    ```
-**Executable is capable of automatically update itself if it finds a newer release in this repository.**
+
+3. **Build directly with PyInstaller:**
+
+   ```powershell
+   .\.venv\Scripts\python.exe -m PyInstaller --clean --onefile --name league-enter main.py
+   ```
+
+4. **Find the executable at `dist\league-enter.exe`.** Building does not launch it.
+
+The packaged executable prompts before downloading a newer release from this repository. Running `main.py` from Python does not offer executable updates.
 
 ---
 <p align="center">
