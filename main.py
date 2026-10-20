@@ -170,7 +170,11 @@ def handle_window(window_name='League of Legends'):
 def find_lockfile(process_name='LeagueClientUx.exe'):
     for proc in psutil.process_iter(['name', 'exe']):
         if proc.info['name'] == process_name:
-            base_path = os.path.dirname(proc.info['exe'])
+            exe_path = proc.info['exe']
+            if not exe_path:
+                log.debug('Unable to read League Client executable path.')
+                continue
+            base_path = os.path.dirname(exe_path)
             lockfile_path = os.path.join(base_path, 'lockfile')
             if os.path.exists(lockfile_path):
                 log.debug(f'Lockfile found: {lockfile_path}')
@@ -203,10 +207,18 @@ def old_minimize(window_handle):
         log.debug('No window found.')
 
 def read_lockfile(lockfile_path):
-    with open(lockfile_path, 'r') as f:
-        content = f.read().split(':')
-        port = content[2]
-        password = content[3]
+    try:
+        with open(lockfile_path, 'r') as f:
+            content = f.read().strip().split(':')
+    except (OSError, UnicodeError) as exc:
+        raise ConnectionError('Unable to read League Client lockfile.') from exc
+
+    if len(content) != 5:
+        raise ConnectionError('League Client lockfile is incomplete.')
+    port, password = content[2:4]
+    if (not port.isascii() or not port.isdigit() or len(port) > 5
+            or not 1 <= int(port) <= 65535 or not password):
+        raise ConnectionError('League Client lockfile is invalid.')
     return port, password
 
 def get_game_phase(port, password):
@@ -236,18 +248,21 @@ def accept_match(port, password, window_handle):
         'Accept': 'application/json'
     }
     try:
-        response = requests.post(url, headers=headers, verify=False)
+        response = requests.post(url, headers=headers, verify=False, timeout=2)
         log.debug('POST: /lol-matchmaking/v1/ready-check/accept')
         log.info(f'Status: {response.status_code}, Content: {response.text}')
+        if response.status_code != 204:
+            log.warning('Match acceptance failed (HTTP %s).', response.status_code)
+            return False
         log.info('Accepted!')
         time.sleep(0.2)
         minimize('League of Legends')
         # old_minimize(window_handle)
-        if response.status_code == 204:
-            time.sleep(0.2)
-            return True
+        time.sleep(0.2)
+        return True
     except requests.RequestException as e:
         log.error(f'Error sending accept request: {e}')
+    return False
 
 #Future features:
 #Pick and ban desire champs.
@@ -310,6 +325,31 @@ def run(init_delay=0):
         time.sleep(delay)
 
 
+def run_bot():
+    custom_delay = 0
+    DEFAULT_DELAY = 0
+    while True:
+        try:
+            if paused:
+                time.sleep(0.1)
+                continue
+            delay = custom_delay if custom_delay else DEFAULT_DELAY
+            custom_delay = 0
+            run(delay)
+        except FileNotFoundError:
+            log.info('Waiting for League Client...')
+            custom_delay = 10
+        except ConnectionError:
+            log.debug('League Client not responding...')
+            custom_delay = 1
+        except KeyboardInterrupt:
+            log.info('Bye!')
+            break
+        except Exception as e:
+            log.error(f'Unexpected Error: {e}')
+            break
+
+
 if __name__ == '__main__':
     try:
         log.info(f'Welcome to League Enter v{__version__}')
@@ -332,28 +372,7 @@ if __name__ == '__main__':
 
         keyboard.add_hotkey('ctrl+p',toggle_pause)
 
-        custom_delay = 0
-        DEFAULT_DELAY = 0
-        while True:
-            try:
-                delay = custom_delay if custom_delay else DEFAULT_DELAY
-                custom_delay = 0
-
-                if not paused:
-                    run(delay)
-
-            except FileNotFoundError:
-                log.info('Waiting for League Client...')
-                custom_delay = 10 # Sets a 10 seconds delay in the next run()
-            except ConnectionError:
-                log.debug('League Client not responding...')
-                custom_delay = 1 # Sets a 10 seconds delay in the next run()
-            except KeyboardInterrupt:
-                log.info('Bye!')
-                break
-            except Exception as e:
-                log.error(f'Unexpected Error: {e}')
-                break
+        run_bot()
 
     except KeyboardInterrupt:
         print()
